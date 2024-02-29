@@ -1,32 +1,111 @@
 <html>
 <head>
-   <title>Speech to text</title>
+  <title>Voice Bot Appointment</title>
 </head>
-   <body>
-      <div class="speaker" style="display: flex;justify-content: space-between;width: 13rem;box-shadow: 0 0 13px #0000003d;border-radius: 5px;">
-         <p id="action" style="color: grey;font-weight: 800; padding: 0; padding-left: 2rem;"></p>
-         <button onclick="runSpeechRecog()" style="border: transparent;padding: 0 0.5rem;">
-            Speech
-         </button>
+<style>
+  .container {
+    border: 2px solid black;
+  }
+
+  .chat-block {
+    overflow-y: scroll;
+    min-height: 500px;
+    max-height: 500px;
+    padding: 2px;
+  }
+
+  @media only screen and (max-width: 900px) {
+    .chat-block {
+      max-height: 50rem;
+      border: 2px solid black;
+    }
+  }
+
+</style>  
+  <body>
+    <h3 id="speech_output" class="hide"></h3>
+
+    <div class="col-12 p-1">
+      <div class="container p-2 col-12">
+        <div class="text-center pt-2">
+          <h3>Voice Bot Appointment</h3>  
+        </div>
+        <div class="container chat-block h-100">
+          <div id="ai-bot-customer-chat"></div>
+          <div class="px-2">
+            <p id="action" style="color: grey;font-weight: 800; padding: 0"></p>
+          </div>
+        </div>
+        <div class="text-center pt-2">
+          <button id="speakButton"class="btn btn-primary" onclick="runSpeechRecog()">Press to Speak</button>  
+        </div>
       </div>
-      <h3 id="output" class="hide"></h3>
-      <script>
-         runSpeechRecog = () => {
-            document.getElementById("output").innerHTML = "Loading text...";
-            var output = document.getElementById('output');
-            var action = document.getElementById('action');
-            let recognization = new webkitSpeechRecognition();
-            recognization.onstart = () => {
-               action.innerHTML = "Listening...";
-            }
-            recognization.onresult = (e) => {
-               var transcript = e.results[0][0].transcript;
-               output.innerHTML = transcript;
-               output.classList.remove("hide")
-               action.innerHTML = "";
-            }
-            recognization.start();
-         }
-      </script>
-   </body>
+
+    </div>
+    
+    <script>
+      window.on_load = getVoices()
+      var scrolled=0;
+
+      runSpeechRecog = () => {
+        var output = document.getElementById('ai-bot-customer-chat');
+        var action = document.getElementById('action');
+        var speak_button = document.getElementById('speakButton');
+        let recognization = new webkitSpeechRecognition();
+        recognization.onstart = () => {
+          action.innerHTML = "Listening...";
+          $("#speakButton").attr("disabled", true)
+          $(".chat-block").animate({ scrollTop: $(".chat-block").height() }, 800);
+        }
+        recognization.onresult = (e) => {
+            var transcript = e.results[0][0].transcript;
+            output.innerHTML += "<div class='px-2'><b>User:</b><p>"+transcript+"</p></div>"
+            action.innerHTML = "";
+            ask_ai(transcript)
+            $("#speakButton").attr("disabled", false)
+            $(".chat-block").animate({ scrollTop: $(".chat-block").height() }, 800);
+
+        }
+        recognization.start();
+      }
+
+      function ask_ai(data){
+        $.ajax({
+          type: "GET",
+          url: "<%= book_slots_path %>",
+          data: { script: data },
+          dataType: "json",
+          success: function(data) {
+            speak_ai(data.message)
+          }
+        });
+      }
+
+      function getVoices() {
+        let voices = speechSynthesis.getVoices();
+        if(!voices.length){
+          let utterance = new SpeechSynthesisUtterance("Educative.io");
+          speechSynthesis.speak(utterance);
+          voices = speechSynthesis.getVoices();
+        }
+        return voices;
+      }
+
+      function speak_ai(text_to_speak){
+        if ('speechSynthesis' in window) {
+          let speakData = new SpeechSynthesisUtterance("Educative.io");
+          speakData.volume = 1; // From 0 to 1
+          speakData.rate = 1; // From 0.1 to 10
+          speakData.pitch = 1; // From 0 to 2
+          speakData.text = text_to_speak;
+          speakData.lang = 'en';
+          speakData.voice = getVoices()[3];
+          speechSynthesis.speak(speakData);
+        }else{
+          alert("Speech Synthesis is not Supported") 
+        }
+      }
+
+    </script>
+  </body>
 </html>

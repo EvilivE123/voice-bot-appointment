@@ -42,6 +42,8 @@ gem 'responders', '3.1.0'
 # Serialization
 gem 'active_model_serializers', '~> 0.10.0'
 
+gem 'jquery-rails'
+
 # Use Redis adapter to run Action Cable in production
 # gem "redis", "~> 4.0"
 
