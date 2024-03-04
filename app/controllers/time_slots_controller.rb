@@ -24,35 +24,12 @@ class TimeSlotsController < ApplicationController
         slot_date = params['slot_date'].to_date
         start_time = params['start_time']
         end_time = params['end_time']
-  
-        if params["allow_recurrance"]
-          time_interval = params['recurrance_interval']
-          st = start_time
-          et = end_time
-          eod_time = "24:00"
-          while st < eod_time && et < eod_time do
-            time_slot = TimeSlot.create!(
-              slot_date: slot_date,
-              start_time: st,
-              end_time: et
-            )
-            st_hours, st_minutes = st.split(":")
-            et_hours, et_minutes = et.split(":")
-            
-            new_st_hours = et_hours.to_i + time_interval.to_i
-            new_et_hours = (et_hours.to_i + time_interval.to_i) + time_interval.to_i
-  
-            st = "#{new_st_hours}".length == 1 ? "0#{new_st_hours}:#{st_minutes}" : "#{new_st_hours}:#{st_minutes}"
-            et = "#{new_et_hours}".length == 1 ? "0#{new_et_hours}:#{et_minutes}" : "#{new_et_hours}:#{et_minutes}"
-          end
-        else
-          time_slot = TimeSlot.create!(
-            slot_date: slot_date,
-            start_time: start_time,
-            end_time: end_time
-          )
-        end
-  
+        time_slot = TimeSlot.new(
+          slot_date: slot_date
+        )
+        time_slot.start_time = DateTime.parse("#{slot_date} #{start_time}")
+        time_slot.end_time = DateTime.parse("#{slot_date} #{end_time}")
+        time_slot.save!
         render_success_response("Time Slot(s) created successfully")
       end
     rescue => exception
@@ -63,8 +40,12 @@ class TimeSlotsController < ApplicationController
   # DELETE - /time_slots/22
   def destroy
     time_slot = TimeSlot.find(params['id'])
-    time_slot.destroy
-    render_success_response("Time Slot destroyed successfully")
+    if time_slot.open?
+      time_slot.destroy
+      render_success_response("Time Slot destroyed successfully")
+    else
+      render_error("Booked slot cannot be destroyed", 422)
+    end
   end
 
   private
@@ -73,9 +54,7 @@ class TimeSlotsController < ApplicationController
     {
       "slot_date" => "Date",
       "start_time" => "Time",
-      "end_time" => "Time",
-      "allow_recurrance" => "Boolean",
-      "recurrance_interval" => "Integer"
+      "end_time" => "Time"
     }.each do |key, value|
       raise "#{key} cannot be blank" if params.keys.exclude?(key)
 
@@ -83,17 +62,12 @@ class TimeSlotsController < ApplicationController
         if value == "Date"
           params[key].to_date 
         elsif value == "Time"
-          hours, min = params[key].split(":")
-          raise if hours.length != 2
+          hours = params[key][/\d+/]
+          am_or_pm = params[key][/\D+/]
+          raise if (hours.length > 2 || hours.length < 1) 
           raise if hours.to_f >= 24
-          raise if min.to_f >= 60
-        elsif value == "Boolean"
-          raise if [true ,"1","true", false,"0","false"].exclude?(params[key])
-        elsif value == "Integer"
-          raise unless params[key].is_a? Integer
-          if params['allow_recurrance']
-            raise if params[key] <= 0
-          end
+          raise if am_or_pm.blank?
+          raise if (params[key].length > 4 || params[key].length < 3)
         else
           raise "Something is wrong!!"
         end

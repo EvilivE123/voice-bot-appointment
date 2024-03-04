@@ -16,12 +16,13 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_29_025714) do
 
   create_table "time_slots", force: :cascade do |t|
     t.date "slot_date", null: false
-    t.string "start_time", null: false
-    t.string "end_time", null: false
+    t.datetime "start_time", null: false
+    t.datetime "end_time", null: false
     t.string "status", null: false
     t.boolean "is_booked", default: false
     t.string "person_name"
     t.string "person_number"
+    t.string "reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

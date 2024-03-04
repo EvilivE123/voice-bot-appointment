@@ -3,7 +3,7 @@ class TimeSlot < ApplicationRecord
   enum status: { "open": "open", "booked": "booked" }, _prefix: true, _default: "open"
 
   validate :validate_person_number, if: Proc.new { self.person_number.present? }
-  validate :validate_slot_overlap
+  validate :validate_slot_overlap, if: Proc.new { self.new_record? }
   validate :validate_slot_date
 
   def validate_person_number

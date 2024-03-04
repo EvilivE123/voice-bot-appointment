@@ -245,7 +245,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  actioncable
   active_model_serializers (~> 0.10.0)
   awesome_print (= 1.9.2)
   bootsnap
@@ -254,7 +253,7 @@ DEPENDENCIES
   debug
   importmap-rails
   jbuilder (= 2.11.5)
-  jquery-rails
+  jquery-rails (= 4.6.0)
   kaminari (= 1.2.2)
   pg (~> 1.1)
   puma (~> 5.0)

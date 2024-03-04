@@ -46,37 +46,100 @@
     <script>
       window.on_load = getVoices()
       var scrolled=0;
+      var output = document.getElementById('ai-bot-customer-chat');
+      var action = document.getElementById('action');
+      var allow_abort = false
+      var ai_error_message = ""
 
-      runSpeechRecog = () => {
-        var output = document.getElementById('ai-bot-customer-chat');
-        var action = document.getElementById('action');
-        var speak_button = document.getElementById('speakButton');
-        let recognization = new webkitSpeechRecognition();
-        recognization.onstart = () => {
-          action.innerHTML = "Listening...";
-          $("#speakButton").attr("disabled", true)
-          $(".chat-block").animate({ scrollTop: $(".chat-block").height() }, 800);
+      if ("webkitSpeechRecognition" in window){
+        function runSpeechRecog(){
+          var speak_button = document.getElementById('speakButton');
+          let recognition = new webkitSpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = true;
+          
+          recognition.start();
+          recognition.onstart = () => {
+            allow_abort = true
+            action.innerHTML = "Listening...";
+            $("#speakButton").attr("disabled", true)
+            $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
+          }
+          recognition.onend = (e) => {
+            if(allow_abort){
+              recognition.stop();
+              action.innerHTML = "";
+              $("#speakButton").attr("disabled", false)
+              ai_error_message = "I'm still learning the system, could you please speak a little more clearly for me?"
+              output.innerHTML += "<div class='px-2'><b style='color:red;'>AI Bot:</b><p>"+ai_error_message+"</p></div>"
+              responsiveVoice.speak(ai_error_message, "UK English Male", {onstart: responsiveVoiceStart, onend: responsiveVoiceEnd})
+              $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
+            }  
+          };
+          recognition.onresult = (e) => {
+            let interimTranscript = "";
+            let finalTranscript = "";
+            allow_abort = false
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const transcript = e.results[i][0].transcript;
+              if (e.results[i].isFinal) {
+                finalTranscript += transcript + " ";
+              } else {
+                interimTranscript += transcript;
+              }
+            }
+            if(finalTranscript != ""){
+              output.innerHTML += "<div class='px-2'><b style='color:blue;'>User:</b><p>"+finalTranscript+"</p></div>"
+              action.innerHTML = "";
+              ask_ai(finalTranscript)
+              $("#speakButton").attr("disabled", false)
+              $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
+            }
+          }
+          
         }
-        recognization.onresult = (e) => {
-            var transcript = e.results[0][0].transcript;
-            output.innerHTML += "<div class='px-2'><b>User:</b><p>"+transcript+"</p></div>"
-            action.innerHTML = "";
-            ask_ai(transcript)
-            $("#speakButton").attr("disabled", false)
-            $(".chat-block").animate({ scrollTop: $(".chat-block").height() }, 800);
-
-        }
-        recognization.start();
+      }else{
+        alert("Web Speech API not supported in this browser.")
       }
 
-      function ask_ai(data){
+      $(document).ready(function() {
+        action.innerHTML = "Loading AI Response...";
+        $("#speakButton").attr("disabled", true)
+        setTimeout(function() {
+          action.innerHTML = "";
+          $("#speakButton").attr("disabled", false)
+          responsiveVoice.speak("Hello, thanks for calling Dr. Archer's office. how may i assist you today?", "UK English Male", {onstart: responsiveVoiceStart, onend: responsiveVoiceEnd})
+          output.innerHTML += "<div class='px-2'><b style='color:red;'>AI Bot:</b><p>Hello, thanks for calling Dr. Archer's office. how may i assist you today?</p></div>"
+        }, 100);
+      });
+
+      function responsiveVoiceStart(){
+        $("#speakButton").attr("disabled", true)
+      }
+      
+      function responsiveVoiceEnd(){
+        $("#speakButton").attr("disabled", false)
+      }
+
+      function ask_ai(message){
         $.ajax({
           type: "GET",
           url: "<%= book_slots_path %>",
-          data: { script: data },
+          data: { 
+            message_content: message
+          },
           dataType: "json",
+          beforeSend: function() {
+            $("#speakButton").attr("disabled", true)
+            action.innerHTML = "Loading AI Response...";
+            $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
+          },
           success: function(data) {
-            speak_ai(data.message)
+            action.innerHTML = "";
+            $("#speakButton").attr("disabled", false)
+            responsiveVoice.speak(data.message_content, "UK English Male", {onstart: responsiveVoiceStart, onend: responsiveVoiceEnd})
+            output.innerHTML += "<div class='px-2'><b style='color:red;'>AI Bot:</b><p>"+data.message_content+"</p></div>"
+            $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
           }
         });
       }
@@ -84,26 +147,11 @@
       function getVoices() {
         let voices = speechSynthesis.getVoices();
         if(!voices.length){
-          let utterance = new SpeechSynthesisUtterance("Educative.io");
+          let utterance = new SpeechSynthesisUtterance();
           speechSynthesis.speak(utterance);
           voices = speechSynthesis.getVoices();
         }
         return voices;
-      }
-
-      function speak_ai(text_to_speak){
-        if ('speechSynthesis' in window) {
-          let speakData = new SpeechSynthesisUtterance("Educative.io");
-          speakData.volume = 1; // From 0 to 1
-          speakData.rate = 1; // From 0.1 to 10
-          speakData.pitch = 1; // From 0 to 2
-          speakData.text = text_to_speak;
-          speakData.lang = 'en';
-          speakData.voice = getVoices()[3];
-          speechSynthesis.speak(speakData);
-        }else{
-          alert("Speech Synthesis is not Supported") 
-        }
       }
 
     </script>
