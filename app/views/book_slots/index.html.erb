@@ -66,6 +66,8 @@
             $(".chat-block").animate({ scrollTop: 999999999999999 }, 800);
           }
           recognition.onend = (e) => {
+            setTimeout(function() {}, 5000)
+
             if(allow_abort){
               recognition.stop();
               action.innerHTML = "";

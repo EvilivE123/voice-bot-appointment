@@ -1,6 +1,8 @@
 class BookSlotAiService
   include Utils::Formatting
 
+  REASON = %w[cold cough headache fever others]
+
   def initialize(message_content: )
     @message_content = message_content
   end
@@ -133,18 +135,13 @@ class BookSlotAiService
   end
 
   def assign_reason
-    if @message_content.downcase.include?("reason for visit is")
-      data_regex = /reason for visit is (.+)/
-      reason_match = data_regex.match(@message_content.downcase)
-      if reason_match
-        $reason = reason_match[1].strip
+    REASON.each do |reason|
+      if @message_content.downcase.include?(reason)
+        $reason = reason
         return nil
-      else
-        return "State the reason by saying 'reason for visit is ...'"
       end
-    else
-      return "State the reason by saying 'reason for visit is ...'"
     end
+    return "kindly select the reasons from the following: #{REASON.join(', ')}"
   end
 
   def schedule_appointment
